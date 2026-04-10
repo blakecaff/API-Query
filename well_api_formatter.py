@@ -15,6 +15,9 @@ def parse_apis(raw: str) -> list[str]:
     tokens = re.split(r"[\n,\s]+", raw.strip())
     return [re.sub(r"\D", "", t) for t in tokens if re.sub(r"\D", "", t)]
 
+def strip_dashes(raw: str) -> str:
+    return raw.replace("-", "")
+
 def build_clause(field: str, values: list[str]) -> str:
     lines = ",\n".join(f"'{v}'" for v in values)
     return f"{field} IN (\n{lines}\n)"
@@ -45,7 +48,11 @@ field_override = st.text_input(
 )
 
 if raw_api.strip():
-    apis = parse_apis(raw_api)
+    dashes_found = "-" in raw_api
+    cleaned_api = strip_dashes(raw_api) if dashes_found else raw_api
+    if dashes_found:
+        st.info("Dashes detected and removed from API numbers.")
+    apis = parse_apis(cleaned_api)
 
     if not apis:
         st.warning("No valid numbers found in the input.")
