@@ -1,9 +1,9 @@
 import streamlit as st
 import re
 
-st.set_page_config(page_title="Well API Formatter", page_icon="🛢️", layout="centered")
+st.set_page_config(page_title="Select by Attributes Generator", page_icon="🛢️", layout="centered")
 
-st.title("🛢️ Well API SQL Formatter")
+st.title("🛢️ Select by Attributes Generator")
 st.caption("Generate SQL IN clauses for API numbers and/or abstracts.")
 
 # --- Helpers ---
