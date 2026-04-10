@@ -19,14 +19,24 @@ def build_clause(field: str, values: list[str]) -> str:
     lines = ",\n".join(f"'{v}'" for v in values)
     return f"{field} IN (\n{lines}\n)"
 
+# --- Session state init ---
+if "api_input" not in st.session_state:
+    st.session_state.api_input = ""
+if "abstract_input" not in st.session_state:
+    st.session_state.abstract_input = ""
+
 # ── Section 1: API Numbers ───────────────────────────────────────────────────
-st.subheader("API Numbers")
+col_title, col_btn = st.columns([6, 1])
+col_title.subheader("API Numbers")
+if col_btn.button("Clear", key="clear_api"):
+    st.session_state.api_input = ""
 
 raw_api = st.text_area(
     "API Numbers",
     placeholder="Paste API numbers here — one per line, or comma/space separated",
     height=180,
     label_visibility="collapsed",
+    key="api_input",
 )
 
 field_override = st.text_input(
@@ -84,13 +94,17 @@ if raw_api.strip():
 st.divider()
 
 # ── Section 2: Abstracts ─────────────────────────────────────────────────────
-st.subheader("Abstracts")
+col_title2, col_btn2 = st.columns([6, 1])
+col_title2.subheader("Abstracts")
+if col_btn2.button("Clear", key="clear_abstract"):
+    st.session_state.abstract_input = ""
 
 raw_abstracts = st.text_area(
     "Abstract values",
     placeholder="Paste ABSTRACT_L values here — one per line, or comma/space separated",
     height=180,
     label_visibility="collapsed",
+    key="abstract_input",
 )
 
 if raw_abstracts.strip():
