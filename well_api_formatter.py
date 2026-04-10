@@ -4,13 +4,29 @@ import re
 st.set_page_config(page_title="Well API Formatter", page_icon="🛢️", layout="centered")
 
 st.title("🛢️ Well API SQL Formatter")
-st.caption("Paste API numbers and generate a SQL IN clause. Auto-detects API10 vs API14 based on digit count.")
+st.caption("Generate SQL IN clauses for API numbers and/or abstracts.")
 
-# --- Inputs ---
-raw_input = st.text_area(
+# --- Helpers ---
+def parse_values(raw: str) -> list[str]:
+    tokens = re.split(r"[\n,\s]+", raw.strip())
+    return [t.strip() for t in tokens if t.strip()]
+
+def parse_apis(raw: str) -> list[str]:
+    tokens = re.split(r"[\n,\s]+", raw.strip())
+    return [re.sub(r"\D", "", t) for t in tokens if re.sub(r"\D", "", t)]
+
+def build_clause(field: str, values: list[str]) -> str:
+    lines = ",\n".join(f"'{v}'" for v in values)
+    return f"{field} IN (\n{lines}\n)"
+
+# ── Section 1: API Numbers ───────────────────────────────────────────────────
+st.subheader("API Numbers")
+
+raw_api = st.text_area(
     "API Numbers",
     placeholder="Paste API numbers here — one per line, or comma/space separated",
-    height=200,
+    height=180,
+    label_visibility="collapsed",
 )
 
 field_override = st.text_input(
@@ -18,17 +34,8 @@ field_override = st.text_input(
     placeholder="Leave blank to auto-detect (API10 or API14)",
 )
 
-# --- Logic ---
-def parse_apis(raw: str) -> list[str]:
-    tokens = re.split(r"[\n,\s]+", raw.strip())
-    return [re.sub(r"\D", "", t) for t in tokens if re.sub(r"\D", "", t)]
-
-def build_clause(field: str, apis: list[str]) -> str:
-    lines = ",\n".join(f"'{a}'" for a in apis)
-    return f"{field} IN (\n{lines}\n)"
-
-if raw_input.strip():
-    apis = parse_apis(raw_input)
+if raw_api.strip():
+    apis = parse_apis(raw_api)
 
     if not apis:
         st.warning("No valid numbers found in the input.")
@@ -37,7 +44,6 @@ if raw_input.strip():
         is14 = [a for a in apis if len(a) == 14]
         other = [a for a in apis if len(a) not in (10, 14)]
 
-        # Stats row
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("Total valid", len(is10) + len(is14))
         if is10:
@@ -47,7 +53,6 @@ if raw_input.strip():
         if other:
             col4.metric("Skipped", len(other))
 
-        # Warnings
         if other:
             st.warning(
                 f"⚠️ {len(other)} entr{'y' if len(other) == 1 else 'ies'} skipped "
@@ -56,23 +61,44 @@ if raw_input.strip():
 
         valid = [a for a in apis if len(a) in (10, 14)]
 
-        # Build output
         if field_override.strip():
-            output = build_clause(field_override.strip(), valid)
+            api_output = build_clause(field_override.strip(), valid)
             detected = f"Field override: `{field_override.strip()}`"
         elif is10 and is14:
-            output = build_clause("API10", is10) + "\n\n" + build_clause("API14", is14)
+            api_output = build_clause("API10", is10) + "\n\n" + build_clause("API14", is14)
             detected = "Mixed — generated separate clauses for **API10** and **API14**"
         elif is10:
-            output = build_clause("API10", is10)
+            api_output = build_clause("API10", is10)
             detected = "Detected: **API10**"
         elif is14:
-            output = build_clause("API14", is14)
+            api_output = build_clause("API14", is14)
             detected = "Detected: **API14**"
         else:
-            output = ""
+            api_output = ""
             detected = ""
 
-        if output:
+        if api_output:
             st.markdown(detected)
-            st.code(output, language="sql")
+            st.code(api_output, language="sql")
+
+st.divider()
+
+# ── Section 2: Abstracts ─────────────────────────────────────────────────────
+st.subheader("Abstracts")
+
+raw_abstracts = st.text_area(
+    "Abstract values",
+    placeholder="Paste ABSTRACT_L values here — one per line, or comma/space separated",
+    height=180,
+    label_visibility="collapsed",
+)
+
+if raw_abstracts.strip():
+    abstracts = parse_values(raw_abstracts)
+
+    if not abstracts:
+        st.warning("No values found in the input.")
+    else:
+        st.metric("Total", len(abstracts))
+        abstract_output = build_clause("ABSTRACT_L", abstracts)
+        st.code(abstract_output, language="sql")
